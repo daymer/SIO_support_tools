@@ -370,4 +370,4 @@ for each_block_offset, offset_props in scini_volume_to_dev_offesets_map.items():
     else:
         scini_volume_to_dev_offesets_map[each_block_offset]['offset_on_actual_disk'] = False
 
-MainLogger.info('' + str(scini_volume_to_dev_offesets_map))
+MainLogger.info('Result: ' + str(scini_volume_to_dev_offesets_map))
