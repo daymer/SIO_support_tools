@@ -186,6 +186,18 @@ stage_result = invoke_ssh_commands(list_servers_func=[sds_ip],
                                    connections_dict_func=connections_dict,
                                    commands=commands_to_execute)
 
+if 'trc_compressed_file_enabled=1' in stage_result[0][2]:
+    MainLogger.info('trc_compressed_file_enabled is manually set to ON, removing this lines')
+    COMP_DIT_ON_in_conf_file = True
+else:
+    COMP_DIT_ON_in_conf_file = False
+
+if 'trc_compressed_file_enabled=0' not in stage_result[0][2]:
+    MainLogger.info('trc_compressed_file_enabled is not set to OFF, adding it to hit v3.5')
+    COMP_DIT_add_to_conf_file = True
+else:
+    COMP_DIT_add_to_conf_file = False
+
 if 'tgt_dit__extra_enabled=0' in stage_result[0][2] or 'tgt_dit__enabled=0' in stage_result[0][2]:
     MainLogger.info('DIT is manually set to OFF, removing this lines')
     DIT_OFF_in_conf_file = True
@@ -196,6 +208,17 @@ if 'tgt_dit__extra_enabled=1' in stage_result[0][2] and 'tgt_dit__enabled=1' in 
     DIT_ON_in_conf_file = True
 else:
     DIT_ON_in_conf_file = False
+
+if COMP_DIT_ON_in_conf_file:
+    commands_to_execute = ((False,
+                            "sed -n '/trc_compressed_file_enabled=1/!p' /opt/emc/scaleio/sds/cfg/conf.txt > /opt/emc/scaleio/sds/cfg/conf_temp.txt"),
+                           (False,
+                            "mv /opt/emc/scaleio/sds/cfg/conf.txt /opt/emc/scaleio/sds/cfg/conf_old.txt && mv /opt/emc/scaleio/sds/cfg/conf_temp.txt /opt/emc/scaleio/sds/cfg/conf.txt && rm /opt/emc/scaleio/sds/cfg/conf_temp.txt -f"),
+                           (False, 'pkill sds'))
+    stage_result = invoke_ssh_commands(list_servers_func=[sds_ip],
+                                       connections_dict_func=connections_dict,
+                                       commands=commands_to_execute)
+    MainLogger.info('trc_compressed_file_enabled=1 was removed from the conf file')
 
 if DIT_OFF_in_conf_file:
     commands_to_execute = ((False,
@@ -211,6 +234,14 @@ if DIT_OFF_in_conf_file:
                                        connections_dict_func=connections_dict,
                                        commands=commands_to_execute)
     MainLogger.info('tgt_dit__extra_enabled=0 and tgt_dit__enabled=0 were removed from the conf file')
+
+if COMP_DIT_add_to_conf_file:
+    commands_to_execute = ((False, 'echo "trc_compressed_file_enabled=0">>/opt/emc/scaleio/sds/cfg/conf.txt'),
+                           (False, 'pkill sds'))
+    stage_result = invoke_ssh_commands(list_servers_func=[sds_ip],
+                                       connections_dict_func=connections_dict,
+                                       commands=commands_to_execute)
+    MainLogger.info('trc_compressed_file_enabled=0 was added to the conf file')
 
 if not DIT_ON_in_conf_file:
     commands_to_execute = ((False, 'echo "tgt_dit__enabled=1">>/opt/emc/scaleio/sds/cfg/conf.txt'),
